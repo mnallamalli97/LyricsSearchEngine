@@ -12,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.SimpleAdapter;
@@ -26,9 +27,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.IDN;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     RadioButton orBtn;
     RadioButton andBtn;
     RadioGroup rbGroup;
+    ProgressBar pbResults;
 
 
     @Override
@@ -59,11 +65,9 @@ public class MainActivity extends AppCompatActivity {
         orBtn = findViewById(R.id.rbOr);
         andBtn = findViewById(R.id.rbAnd);
         rbGroup = findViewById(R.id.rbGroup);
+        pbResults = findViewById(R.id.pbResults);
 
-
-
-        String search_query = etSearch.getText().toString();
-
+        pbResults.setVisibility(View.GONE);
 
         Log.d(TAG,"doInBackground: starting parsetask class");
 
@@ -72,8 +76,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //once submit button is clicked
-                new ParseTask().execute();
 
+                if (etSearch.getText().toString().isEmpty()){
+                    Toast.makeText(MainActivity.this, "Think of a song!", Toast.LENGTH_SHORT).show();
+                }else{
+
+                    if (rbGroup.getCheckedRadioButtonId() == -1){
+                        Toast.makeText(MainActivity.this, "Please select either AND or OR", Toast.LENGTH_SHORT).show();
+                    } else{
+                        //if error check complete, execute the search
+                        pbResults.setVisibility(View.VISIBLE);
+                        new ParseTask().execute();
+
+                    }
+
+                }
             }
         });
 
@@ -99,36 +116,64 @@ public class MainActivity extends AppCompatActivity {
         String $url_json;
         URL url;
 
+
         ArrayList<HashMap<String,String>> employeeList = new ArrayList<HashMap<String,String>>();
 
         String result_json = "{\"searchResults\":";
 
         protected String andQuery(String query){
+
             String andLink = "https://lit-dusk-32149.herokuapp.com/search/and/" + query;
-            return andLink;
+            String correctEncodedURL = "";
+            try {
+                url = new URL(andLink);
+                URI uri = new URI(url.getProtocol(), url.getUserInfo(), IDN.toASCII(url.getHost()), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+                correctEncodedURL=uri.toASCIIString();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+            return correctEncodedURL;
         }
 
         protected String orQuery(String query){
             String orLink = "https://lit-dusk-32149.herokuapp.com/search/or/" + query;
-            return orLink;
+            String correctEncodedURL = "";
+            try {
+                url = new URL(orLink);
+                URI uri = new URI(url.getProtocol(), url.getUserInfo(), IDN.toASCII(url.getHost()), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+                correctEncodedURL=uri.toASCIIString();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+            return correctEncodedURL;
         }
 
         @Override
         protected String doInBackground(Void... voids) {
             try {
+
                 Log.d(TAG, "doInBackground: starting doinbackground");
 
+                //convert the input to url encoding.
+                String userInput = etSearch.getText().toString();
+
+
                 if(rbGroup.getCheckedRadioButtonId() == andBtn.getId()){
-                    String testQuery = "i%20need%20a%20hero";
-                    $url_json = andQuery(testQuery);
+                    Log.d("USERINPUT", "userinput:" + userInput);
+                    $url_json = andQuery(userInput);
                 }
 
                 if(rbGroup.getCheckedRadioButtonId() == orBtn.getId()){
-                    String testQuery = "blood%20on%20the%20leaves";
-                    $url_json = orQuery(testQuery);
+                    $url_json = orQuery(userInput);
                 }
+                Log.d("TAG", "heroku URL:" + $url_json);
 
-                url = new URL($url_json);
+
+
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -159,11 +204,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String json) {
             super.onPostExecute(json);
-
+            pbResults.setVisibility(View.GONE);
             //parse the string and put it into the list view
             JSONObject jsonResponse = null;
             try {
-
                 Log.d(TAG, result_json);
                // String jsonString = "{\"searchResults\":[{\"sname\":\"I Wanna Be Your Hero\",\"aname\":\"Def Leppard\",\"url\":\"/d/def+leppard/i+wanna+be+your+hero_20038946.html\"},{\"sname\":\"Hero\",\"aname\":\"David Guetta\",\"url\":\"/d/david+guetta/hero_20991447.html\"},{\"sname\":\"Nobody's Hero\",\"aname\":\"Bon Jovi\",\"url\":\"/b/bon+jovi/nobodys+hero_20811564.html\"},{\"sname\":\"We Don't Need Another Hero\",\"aname\":\"Tina Turner\",\"url\":\"/t/tina+turner/we+dont+need+another+hero_10232469.html\"},{\"sname\":\"Hero For A Day\",\"aname\":\"Conway Twitty\",\"url\":\"/c/conway+twitty/hero+for+a+day_20870543.html\"}]}";
                 jsonResponse = new JSONObject(result_json);
@@ -183,12 +227,17 @@ public class MainActivity extends AppCompatActivity {
 
             ListView lvResults = findViewById(R.id.lvResults);
 
+            if(employeeList.size() == 0){
+                //display message
+                Toast.makeText(MainActivity.this, "Sorry, no results found.", Toast.LENGTH_SHORT).show();
+
+            }
+            pbResults.setVisibility(View.GONE);
             SimpleAdapter simpleAdapter = new SimpleAdapter(MainActivity.this, employeeList, android.R.layout.simple_list_item_1, new String[] {"result"}, new int[] {android.R.id.text1});
-            Log.d(TAG, "onPostExecute:" + employeeList);
             lvResults.setAdapter(simpleAdapter);
 
+            Log.d(TAG, "onPostExecute:" + employeeList);
             result_json = "";
-
         }
     }
 
