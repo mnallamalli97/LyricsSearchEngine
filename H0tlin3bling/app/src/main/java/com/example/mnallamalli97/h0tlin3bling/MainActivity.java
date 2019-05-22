@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     EditText etSearch;
     RadioButton orBtn;
     RadioButton andBtn;
+    RadioGroup rbGroup;
 
 
     @Override
@@ -56,25 +58,29 @@ public class MainActivity extends AppCompatActivity {
         etSearch = findViewById(R.id.etSearch);
         orBtn = findViewById(R.id.rbOr);
         andBtn = findViewById(R.id.rbAnd);
+        rbGroup = findViewById(R.id.rbGroup);
 
 
 
         String search_query = etSearch.getText().toString();
 
-        //set the default press to and
-        andBtn.setChecked(true);
 
         Log.d(TAG,"doInBackground: starting parsetask class");
-        new ParseTask().execute();
 
-        //if radio button = AND
-        if (andBtn.isEnabled()){
 
-        }
+        btnSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //once submit button is clicked
+                new ParseTask().execute();
 
-        if (orBtn.isEnabled()){
+            }
+        });
 
-        }
+
+
+
+
 
     }
 
@@ -93,17 +99,35 @@ public class MainActivity extends AppCompatActivity {
         String $url_json;
         URL url;
 
-
-
         ArrayList<HashMap<String,String>> employeeList = new ArrayList<HashMap<String,String>>();
 
         String result_json = "{\"searchResults\":";
+
+        protected String andQuery(String query){
+            String andLink = "https://lit-dusk-32149.herokuapp.com/search/and/" + query;
+            return andLink;
+        }
+
+        protected String orQuery(String query){
+            String orLink = "https://lit-dusk-32149.herokuapp.com/search/or/" + query;
+            return orLink;
+        }
 
         @Override
         protected String doInBackground(Void... voids) {
             try {
                 Log.d(TAG, "doInBackground: starting doinbackground");
-                $url_json = "https://lit-dusk-32149.herokuapp.com/search/and/i%20need%20a%20hero";
+
+                if(rbGroup.getCheckedRadioButtonId() == andBtn.getId()){
+                    String testQuery = "i%20need%20a%20hero";
+                    $url_json = andQuery(testQuery);
+                }
+
+                if(rbGroup.getCheckedRadioButtonId() == orBtn.getId()){
+                    String testQuery = "blood%20on%20the%20leaves";
+                    $url_json = orQuery(testQuery);
+                }
+
                 url = new URL($url_json);
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
