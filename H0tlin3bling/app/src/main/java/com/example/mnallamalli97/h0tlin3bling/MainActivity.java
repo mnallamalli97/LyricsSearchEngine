@@ -1,11 +1,16 @@
 package com.example.mnallamalli97.h0tlin3bling;
 
+import android.content.Intent;
 import android.nfc.Tag;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
+import android.support.design.internal.BottomNavigationMenu;
+import android.support.design.widget.BottomNavigationView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -50,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     RadioButton andBtn;
     RadioGroup rbGroup;
     ProgressBar pbResults;
+    BottomNavigationView navigationMenu;
+
 
 
     @Override
@@ -66,12 +73,27 @@ public class MainActivity extends AppCompatActivity {
         andBtn = findViewById(R.id.rbAnd);
         rbGroup = findViewById(R.id.rbGroup);
         pbResults = findViewById(R.id.pbResults);
-
+        navigationMenu = findViewById(R.id.bottom_navigation);
         pbResults.setVisibility(View.GONE);
 
+        navigationMenu.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()){
+                    case R.id.navigation_search:
+                        break;
+                        //pass intent to go to main activity
+                    case R.id.navigation_sing:
+                        //pass intent to go to singing page
+                        Intent sing = new Intent(MainActivity.this,SingActivity.class);
+                        startActivity(sing);
+                        break;
+                }
+                return true;
+            }
+        });
+
         Log.d(TAG,"doInBackground: starting parsetask class");
-
-
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
